@@ -10,6 +10,10 @@ def create_app():
     db.init_app(app)
     Migrate(app, db)
 
+    @app.route('/')
+    def index():
+     return "Superheroes code challenge!"
+
     @app.route('/heroes', methods=['GET'])
     def get_heroes():
         heroes = Hero.query.all()
@@ -90,5 +94,4 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app = create_app()
     app.run(port=5555, debug=True)
