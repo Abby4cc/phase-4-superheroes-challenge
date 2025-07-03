@@ -1,7 +1,11 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import validates
+from sqlalchemy import MetaData
+from sqlalchemy.orm import validates 
 
-db = SQLAlchemy()
+metadata = MetaData()
+
+db = SQLAlchemy(metadata=metadata)
+
 
 class Hero(db.Model):
     __tablename__ = 'heroes'
@@ -18,9 +22,9 @@ class Hero(db.Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'name': self.name,
-            'super_name': self.super_name
+            "id": self.id,
+            "name": self.name,
+            "super_name": self.super_name
         }
 
 class Power(db.Model):
@@ -37,16 +41,16 @@ class Power(db.Model):
     )
 
     @validates('description')
-    def validate_description(self, key, description):
-        if not description or len(description) < 20:
+    def validate_description(self, key, value):
+        if not value or len(value.strip()) < 20:
             raise ValueError("Description must be at least 20 characters.")
-        return description
+        return value.strip()
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'name': self.name,
-            'description': self.description
+            "id": self.id,
+            "name": self.name,
+            "description": self.description
         }
 
 class HeroPower(db.Model):
@@ -61,22 +65,26 @@ class HeroPower(db.Model):
     power = db.relationship('Power', back_populates='hero_powers')
 
     @validates('strength')
-    def validate_strength(self, key, strength):
-        allowed = {'Strong', 'Weak', 'Average'}
-        if strength not in allowed:
-            raise ValueError(f"Strength must be one of: {allowed}.")
-        return strength
+    def validate_strength(self, key, value):
+        allowed = {"Strong", "Weak", "Average"}
+        if value not in allowed:
+            raise ValueError("Strength must be one of: 'Strong', 'Weak', or 'Average'.")
+        return value
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'hero_id': self.hero_id,
-            'power_id': self.power_id,
-            'strength': self.strength
+            "id": self.id,
+            "hero_id": self.hero_id,
+            "power_id": self.power_id,
+            "strength": self.strength
         }
 
     def to_dict_with_nested(self):
-        data = self.to_dict()
-        data['hero'] = self.hero.to_dict()
-        data['power'] = self.power.to_dict()
-        return data
+        return {
+            "id": self.id,
+            "hero_id": self.hero_id,
+            "power_id": self.power_id,
+            "strength": self.strength,
+            "hero": self.hero.to_dict(),
+            "power": self.power.to_dict()
+        }

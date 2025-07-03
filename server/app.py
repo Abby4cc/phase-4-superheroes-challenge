@@ -1,18 +1,20 @@
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify
 from flask_migrate import Migrate
 from models import db, Hero, Power, HeroPower
 
 def create_app():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///superheroes.db"
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///superheroes.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
+
     db.init_app(app)
     Migrate(app, db)
 
+
     @app.route('/')
     def index():
-     return "Superheroes code challenge!"
+        return jsonify({"message": "Superheroes code challenge!"}), 200
 
     @app.route('/heroes', methods=['GET'])
     def get_heroes():
@@ -24,6 +26,7 @@ def create_app():
         hero = Hero.query.get(id)
         if not hero:
             return jsonify({"error": "Hero not found"}), 404
+        
         data = hero.to_dict()
         data['hero_powers'] = [
             {
@@ -53,9 +56,11 @@ def create_app():
         power = Power.query.get(id)
         if not power:
             return jsonify({"error": "Power not found"}), 404
+
         data = request.get_json()
         if 'description' not in data:
             return jsonify({"errors": ["Missing description"]}), 400
+
         try:
             power.description = data['description']
             db.session.commit()
@@ -67,29 +72,33 @@ def create_app():
     @app.route('/hero_powers', methods=['POST'])
     def create_hero_power():
         data = request.get_json()
-        missing = [f for f in ['hero_id', 'power_id', 'strength'] if f not in data]
+
+        required = ['hero_id', 'power_id', 'strength']
+        missing = [f for f in required if f not in data]
         if missing:
-            return jsonify({"errors": [f"Missing: {','.join(missing)}"]}), 400
+            return jsonify({"errors": [f"Missing: {', '.join(missing)}"]}), 400
 
         hero = Hero.query.get(data['hero_id'])
-        pw = Power.query.get(data['power_id'])
-        if not hero or not pw:
+        power = Power.query.get(data['power_id'])
+        if not hero or not power:
             return jsonify({"errors": ["Invalid hero_id or power_id"]}), 400
 
         try:
-            hp = HeroPower(
+            hero_power = HeroPower(
                 hero_id=data['hero_id'],
                 power_id=data['power_id'],
                 strength=data['strength']
             )
-            db.session.add(hp)
+            db.session.add(hero_power)
             db.session.commit()
-            return jsonify(hp.to_dict_with_nested()), 201
+
+            return jsonify(hero_power.to_dict_with_nested()), 201
         except ValueError as e:
             db.session.rollback()
             return jsonify({"errors": [str(e)]}), 400
 
     return app
+
 
 app = create_app()
 
